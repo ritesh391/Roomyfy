@@ -15,6 +15,7 @@ const ChatThread = () => {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,10 +27,13 @@ const ChatThread = () => {
       try {
         const [chatsData, messagesData] = await Promise.all([
           api.getMyChats(),
-          api.getChatMessages(id!)
+          api.getChatMessages(id!),
         ]);
 
-        const currentChat = chatsData.chats?.find((c: any) => c._id === id);
+        const currentChat = chatsData.chats?.find(
+          (c: any) => c._id === id
+        );
+
         setChat(currentChat);
         setMessages(messagesData.messages || []);
       } catch (err) {
@@ -38,31 +42,36 @@ const ChatThread = () => {
         setLoading(false);
       }
     };
+
     fetchMessages();
   }, [id]);
 
-  // Poll for new messages every 5 seconds
+  // Auto refresh messages
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
         const data = await api.getChatMessages(id!);
         setMessages(data.messages || []);
       } catch (err) {
-        console.error("Poll failed:", err);
+        console.error("Polling failed:", err);
       }
     }, 5000);
+
     return () => clearInterval(interval);
   }, [id]);
 
   const send = async () => {
     if (!text.trim() || sending) return;
+
     const msgText = text.trim();
+
     setText("");
     setSending(true);
 
     try {
       const data = await api.sendMessage(id!, msgText);
-      setMessages((m) => [...m, data.message]);
+
+      setMessages((prev) => [...prev, data.message]);
     } catch (err) {
       console.error("Failed to send message:", err);
       setText(msgText);
@@ -72,7 +81,13 @@ const ChatThread = () => {
   };
 
   const getOtherParticipant = () => {
-    return chat?.participants?.find((p: any) => p._id !== user?.id) || chat?.participants?.[0];
+    const currentUserId = (user as any)?._id || user?.id;
+
+    return (
+      chat?.participants?.find(
+        (p: any) => String(p._id) !== String(currentUserId)
+      ) || chat?.participants?.[0]
+    );
   };
 
   const other = getOtherParticipant();
@@ -93,6 +108,7 @@ const ChatThread = () => {
           <div className="font-semibold text-sm">
             {loading ? "Loading..." : other?.name || "Chat"}
           </div>
+
           {chat?.property && (
             <div className="text-[11px] text-muted-foreground truncate">
               {chat.property.title}
@@ -121,6 +137,7 @@ const ChatThread = () => {
         {!loading && messages.length === 0 && (
           <div className="text-center py-16">
             <p className="text-4xl mb-3">👋</p>
+
             <p className="text-sm text-muted-foreground">
               Say hello to start the conversation!
             </p>
@@ -129,8 +146,19 @@ const ChatThread = () => {
 
         <AnimatePresence initial={false}>
           {messages.map((m) => {
-            const isMe = m.sender?._id === user?.id || m.sender === user?.id;
-            const time = new Date(m.createdAt).toLocaleTimeString([], {
+            const senderId =
+              typeof m.sender === "object"
+                ? m.sender?._id
+                : m.sender;
+
+            const currentUserId = (user as any)?._id || user?.id;
+
+            const isMe =
+              String(senderId) === String(currentUserId);
+
+            const time = new Date(
+              m.createdAt
+            ).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
             });
@@ -140,7 +168,9 @@ const ChatThread = () => {
                 key={m._id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                className={`flex ${
+                  isMe ? "justify-end" : "justify-start"
+                }`}
               >
                 <div
                   className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm ${
@@ -150,9 +180,12 @@ const ChatThread = () => {
                   }`}
                 >
                   {m.text}
+
                   <div
                     className={`text-[10px] mt-0.5 ${
-                      isMe ? "text-primary-foreground/80" : "text-muted-foreground"
+                      isMe
+                        ? "text-primary-foreground/80"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {time}
@@ -162,12 +195,16 @@ const ChatThread = () => {
             );
           })}
         </AnimatePresence>
+
         <div ref={endRef} />
       </div>
 
       {/* Input */}
       <form
-        onSubmit={(e) => { e.preventDefault(); send(); }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          send();
+        }}
         className="sticky bottom-0 flex items-center gap-2 px-4 py-3 border-t border-border/60 bg-background safe-bottom"
       >
         <input
@@ -176,6 +213,7 @@ const ChatThread = () => {
           placeholder="Type a message…"
           className="flex-1 h-11 rounded-full bg-secondary px-4 text-sm outline-none focus:ring-2 focus:ring-primary/40"
         />
+
         <button
           type="submit"
           disabled={sending || !text.trim()}
