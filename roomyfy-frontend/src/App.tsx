@@ -25,7 +25,7 @@ const Shell = ({ children }: { children: React.ReactNode }) => <AppShell>{childr
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>  {/* ← ADD THIS LINE */}
+    <AuthProvider>  
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -34,7 +34,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/role" element={<RoleSelect />} />
             <Route path="/search" element={<Shell><Search /></Shell>} />
-            <Route path="/room/:id" element={<Shell><RoomDetails /></Shell>} />
+            <Route path="/room/:id" element={<RoomDetails />} />
             <Route path="/add" element={<Shell><AddListing /></Shell>} />
             <Route path="/bookings" element={<Shell><Bookings /></Shell>} />
             <Route path="/chats" element={<Shell><Chats /></Shell>} />
@@ -47,7 +47,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
-    </AuthProvider>  {/* ← ADD THIS LINE */}
+    </AuthProvider>  
   </QueryClientProvider>
 );
 
