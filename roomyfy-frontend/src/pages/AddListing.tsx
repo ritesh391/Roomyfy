@@ -1,7 +1,7 @@
 import { api } from "@/lib/api";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Sparkles, IndianRupee, MapPin, ArrowLeft } from "lucide-react";
+import { Camera, Sparkles, IndianRupee, MapPin, ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +31,8 @@ const AddListing = () => {
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
+  const [images, setImages] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
 
   const [amenities, setAmenities] = useState<string[]>(["WiFi"]);
   const [aiSuggesting, setAiSuggesting] = useState(false);
@@ -40,6 +42,18 @@ const AddListing = () => {
     setAmenities((p) =>
       p.includes(a) ? p.filter((x) => x !== a) : [...p, a]
     );
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []).slice(0, 5);
+
+    setImages(selectedFiles);
+    setPreviews(selectedFiles.map((file) => URL.createObjectURL(file)));
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const suggestPrice = () => {
     setAiSuggesting(true);
@@ -61,19 +75,28 @@ const AddListing = () => {
     try {
       setLoading(true);
 
-      await api.createProperty({
-        title,
-        description,
-        rent: Number(price),
-        location,
-        type,
-        amenities,
-        bedrooms: 1,
-        bathrooms: 1,
+      const formData = new FormData();
+
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("rent", String(Number(price)));
+      formData.append("location", location);
+      formData.append("type", type);
+      formData.append("bedrooms", "1");
+      formData.append("bathrooms", "1");
+
+      amenities.forEach((amenity) => {
+        formData.append("amenities", amenity);
       });
 
+      images.forEach((image) => {
+        formData.append("images", image);
+      });
+
+      await api.createProperty(formData);
+
       toast.success("Listing published! ✨", {
-        description: "Your room is now saved in MongoDB.",
+        description: "Your room images are uploaded successfully.",
       });
 
       setTimeout(() => navigate("/profile"), 800);
@@ -99,24 +122,46 @@ const AddListing = () => {
       </header>
 
       <form onSubmit={handleSubmit} className="px-5 mt-6 space-y-5">
-        {/* Photos */}
         <div>
           <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Photos
           </Label>
 
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {[0, 1, 2].map((i) => (
-              <button
-                key={i}
-                type="button"
-                className="aspect-square rounded-2xl border-2 border-dashed border-border bg-secondary/50 flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition"
-              >
-                <Camera className="h-5 w-5" />
-                <span className="text-[10px] mt-1">Add</span>
-              </button>
-            ))}
-          </div>
+          <label className="mt-2 aspect-square rounded-2xl border-2 border-dashed border-border bg-secondary/50 flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition cursor-pointer">
+            <Camera className="h-6 w-6" />
+            <span className="text-xs mt-1">Upload photos</span>
+            <span className="text-[10px] mt-0.5">Max 5 images</span>
+
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+          </label>
+
+          {previews.length > 0 && (
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {previews.map((src, index) => (
+                <div key={src} className="relative aspect-square">
+                  <img
+                    src={src}
+                    alt={`Preview ${index + 1}`}
+                    className="h-full w-full rounded-2xl object-cover"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>

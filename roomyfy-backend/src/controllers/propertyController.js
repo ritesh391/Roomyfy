@@ -45,7 +45,9 @@ export const getSingleProperty = async (req, res) => {
 // CREATE PROPERTY
 export const createProperty = async (req, res) => {
   try {
-    const { title, description, rent, location, bedrooms, bathrooms, images } = req.body;
+    const imageUrls = req.files ? req.files.map((file) => file.path) : [];
+
+    const { title, description, rent, location, bedrooms, bathrooms } = req.body;
 
     const property = await Property.create({
       title,
@@ -54,7 +56,7 @@ export const createProperty = async (req, res) => {
       location,
       bedrooms,
       bathrooms,
-      images,
+      images: imageUrls,
       owner: req.user._id,
     });
 

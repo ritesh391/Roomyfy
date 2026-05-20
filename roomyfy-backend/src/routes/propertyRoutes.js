@@ -1,3 +1,4 @@
+import upload from "../config/cloudinary.js";
 import express from "express";
 import protect from "../middleware/authMiddleware.js";
 import {
@@ -8,7 +9,7 @@ getSingleProperty
 
 const router = express.Router();
 
-router.post("/", protect, createProperty);
+router.post("/", protect, upload.array("images", 5), createProperty);
 
 router.get("/", getProperties);
 

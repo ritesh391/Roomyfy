@@ -53,16 +53,22 @@ export const api = {
     if (!res.ok) throw await res.json();
     return res.json();
   },
+createProperty: async (data: any) => {
+  const isFormData = data instanceof FormData;
 
-  createProperty: async (data: any) => {
-    const res = await fetch(`${API_BASE_URL}/properties`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw await res.json();
-    return res.json();
-  },
+  const res = await fetch(`${API_BASE_URL}/properties`, {
+    method: "POST",
+    headers: isFormData
+      ? {
+          Authorization: `Bearer ${getToken()}`,
+        }
+      : authHeaders(),
+    body: isFormData ? data : JSON.stringify(data),
+  });
+
+  if (!res.ok) throw await res.json();
+  return res.json();
+},
 
   // ─── BOOKINGS ───────────────────────────
   createBooking: async (data: { propertyId: string; message?: string }) => {
