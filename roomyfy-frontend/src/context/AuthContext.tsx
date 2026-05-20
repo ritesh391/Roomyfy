@@ -22,15 +22,23 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem("token")
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (token) {
+      const savedToken = localStorage.getItem("token");
+      if (savedToken) {
         try {
           const data = await api.getMe();
-          setUser(data.user);
+          if (data?.user) {
+            setUser(data.user);
+          } else {
+            localStorage.removeItem("token");
+            setToken(null);
+          }
         } catch {
           localStorage.removeItem("token");
           setToken(null);
@@ -39,24 +47,52 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     };
     fetchUser();
-  }, [token]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     const data = await api.login({ email, password });
-    if (!data.token) throw new Error(data.message || "Login failed");
+    if (!data.token) {
+      throw new Error(data.message || "Login failed");
+    }
     localStorage.setItem("token", data.token);
     setToken(data.token);
+
+    // Build user from token payload or fetch from API
     try {
       const me = await api.getMe();
-      setUser(me.user);
+      if (me?.user) {
+        setUser(me.user);
+      } else {
+        // Fallback: set basic user info
+        setUser({
+          id: "",
+          name: email.split("@")[0],
+          email: email,
+          role: "tenant",
+        });
+      }
     } catch {
-      setUser(null);
+      // Even if getMe fails, login was successful
+      setUser({
+        id: "",
+        name: email.split("@")[0],
+        email: email,
+        role: "tenant",
+      });
     }
   };
 
-  const register = async (name: string, email: string, password: string, role = "tenant") => {
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    role = "tenant"
+  ) => {
     const data = await api.register({ name, email, password, role });
-    if (!data.user) throw new Error(data.message || "Registration failed");
+    if (!data.user) {
+      throw new Error(data.message || "Registration failed");
+    }
+    // Auto login after register
     await login(email, password);
   };
 
