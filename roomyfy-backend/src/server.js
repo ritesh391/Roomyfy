@@ -15,20 +15,22 @@ connectDB();
 
 const app = express();
 
-
 // Middleware
 app.use(cors({
-  origin: ["http://localhost:8080", "http://127.0.0.1:8080"],
+  origin: [
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "https://roomyfy.vercel.app",
+    "https://roomyfy-6ytzc6eyn-riteshrathore391-4035s-projects.vercel.app"
+  ],
   credentials: true
 }));
 app.use(express.json());
-
 
 // Test Route
 app.get('/', (req, res) => {
     res.send('Roomyfy Backend Running');
 });
-
 
 // API Routes
 app.use("/api/chats", chatRoutes);
@@ -36,14 +38,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/bookings', bookingRoutes);
 
-
 // Optional 404 Handler
-app.use((req,res)=>{
+app.use((req, res) => {
    res.status(404).json({
-      message:"Route not found"
+      message: "Route not found"
    });
 });
-
 
 // Server
 const PORT = process.env.PORT || 5000;
