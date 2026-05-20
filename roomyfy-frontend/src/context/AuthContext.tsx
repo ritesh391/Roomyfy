@@ -43,14 +43,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     const data = await api.login({ email, password });
+    if (!data.token) throw new Error(data.message || "Login failed");
     localStorage.setItem("token", data.token);
     setToken(data.token);
-    const me = await api.getMe();
-    setUser(data.user);
+    try {
+      const me = await api.getMe();
+      setUser(me.user);
+    } catch {
+      setUser(null);
+    }
   };
 
   const register = async (name: string, email: string, password: string, role = "tenant") => {
-    await api.register({ name, email, password, role });
+    const data = await api.register({ name, email, password, role });
+    if (!data.user) throw new Error(data.message || "Registration failed");
     await login(email, password);
   };
 
@@ -61,7 +67,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, isLoggedIn: !!user, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        login,
+        register,
+        logout,
+        isLoggedIn: !!user,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
